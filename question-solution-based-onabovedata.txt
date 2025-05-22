@@ -1,0 +1,104 @@
+-- questions and query
+-- 1.  List all films and their durations.
+SELECT name, length_min FROM films;
+
+-- 2. Retrieve all customers in alphabetical order (by last name).
+SELECT * FROM customers
+ORDER BY last_name ASC;
+
+-- 3. Get the total number of bookings made by each customer.
+SELECT c.id, c.first_name, c.last_name, COUNT(b.id) AS total_bookings
+FROM customers c
+LEFT JOIN bookings b ON c.id = b.customer_id
+GROUP BY c.id, c.first_name, c.last_name;
+
+-- 4. Find all screenings of the film 'Inception'.
+SELECT s.id AS screening_id, r.name AS room_name, s.start_time
+FROM screenings s
+JOIN films f ON s.film_id = f.id
+JOIN rooms r ON s.room_id = r.id
+WHERE f.name = 'Breathe';
+
+-- 5. Show seat layout for a specific room (e.g., Room A).
+SELECT s.seat_row, s.number
+FROM seats s
+JOIN rooms r ON s.room_id = r.id
+WHERE r.name = 'kubrick'
+ORDER BY s.seat_row, s.number;
+
+-- 6. List customers who haven't made any bookings.
+SELECT * FROM customers
+WHERE id NOT IN (SELECT DISTINCT customer_id FROM bookings);
+
+-- 7. Count how many screenings are scheduled in each room.
+SELECT r.name AS room_name, COUNT(s.id) AS total_screenings
+FROM rooms r
+LEFT JOIN screenings s ON r.id = s.room_id
+GROUP BY r.id, r.name;
+
+-- 8. Get the list of reserved seats for a specific screening.
+SELECT rs.id AS reservation_id, se.seat_row, se.number
+FROM reserved_seat rs
+JOIN bookings b ON rs.booking_id = b.id
+JOIN seats se ON rs.seat_id = se.id
+WHERE b.screening_id = 1;
+
+-- 9. Find the most booked film.
+SELECT f.name, COUNT(b.id) AS total_bookings
+FROM films f
+JOIN screenings s ON f.id = s.film_id
+JOIN bookings b ON s.id = b.screening_id
+GROUP BY f.name
+ORDER BY total_bookings DESC
+LIMIT 1;
+
+-- 10. Find customers who booked more than 2 seats in a single booking.
+SELECT c.first_name, c.last_name, b.id AS booking_id, COUNT(rs.id) AS seat_count
+FROM customers c
+JOIN bookings b ON c.id = b.customer_id
+JOIN reserved_seat rs ON b.id = rs.booking_id
+GROUP BY b.id, c.first_name, c.last_name
+HAVING COUNT(rs.id) > 2;
+
+-- 11. Get all screenings with available seats (assume total seats - reserved).
+SELECT s.id AS screening_id, f.name AS film_name, r.name AS room_name,
+       r.no_seats - COUNT(rs.id) AS available_seats
+FROM screenings s
+JOIN films f ON s.film_id = f.id
+JOIN rooms r ON s.room_id = r.id
+LEFT JOIN bookings b ON s.id = b.screening_id
+LEFT JOIN reserved_seat rs ON b.id = rs.booking_id
+GROUP BY s.id, f.name, r.name, r.no_seats;
+
+-- 12. Nested Query: Get names of customers who booked for 'Geostorm'.
+
+SELECT DISTINCT c.first_name, c.last_name
+FROM customers c
+WHERE c.id IN (
+    SELECT b.customer_id
+    FROM bookings b
+    JOIN screenings s ON b.screening_id = s.id
+    JOIN films f ON s.film_id = f.id
+    WHERE f.name = 'Geostorm'
+);
+
+-- 15. Create a view to simplify all booking details.
+CREATE VIEW booking_details AS
+SELECT b.id AS booking_id, c.first_name, c.last_name, f.name AS film, r.name AS room, s.start_time
+FROM bookings b
+JOIN customers c ON b.customer_id = c.id
+JOIN screenings s ON b.screening_id = s.id
+JOIN films f ON s.film_id = f.id
+JOIN rooms r ON s.room_id = r.id;
+
+-- View usage example:
+SELECT * FROM booking_details;
+
+
+
+
+
+
+
+
+
